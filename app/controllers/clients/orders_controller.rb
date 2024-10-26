@@ -88,6 +88,20 @@ module Clients
     def generate_invoice
       @order = Order.find(params[:id])
       
+      # Check if an invoice already exists for this order
+      @invoice = Invoice.find_by(order_id: @order.id)
+      
+      # Create a new invoice if one does not already exist
+      unless @invoice
+        @invoice = Invoice.create(
+          order_id: @order.id,
+          invoice_number: "INV-#{@order.id}-#{Time.now.to_i}",
+          subtotal: @order.subtotal,
+          shipping_cost: @order.shipping_cost,
+          total_price: @order.total_price
+        )
+      end
+
       # Generate PDF invoice
       pdf = generate_pdf_invoice(@order)
       
