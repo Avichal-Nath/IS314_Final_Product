@@ -41,12 +41,14 @@ module Clients
 
       # Simulate payment processing (replace with real payment gateway in production)
       if valid_payment?(card_number, expiry, cvv)
-        @order = current_user.orders.new(order_params.merge(billing_details: billing_details, shipping_details: shipping_details))
-    
-        @order.subtotal = @cart_items.sum { |item| item.product.price * item.quantity }
-        @order.shipping_cost = 10.00
-        @order.total_price = @order.subtotal + @order.shipping_cost
-    
+        @order = current_user.orders.new(
+          subtotal: @cart_items.sum { |item| item.product.price * item.quantity },
+          shipping_cost: 10.00,
+          total_price: @cart_items.sum { |item| item.product.price * item.quantity } + 10.00,
+          billing_details: billing_details,  # Storing billing details as JSON
+          shipping_details: shipping_details # Storing shipping details as JSON
+        )
+
         if @order.save
           # Create order items from cart items
           @cart_items.each do |cart_item|
@@ -74,7 +76,6 @@ module Clients
     # Confirms the payment for the order
     def confirm_payment
       @order = Order.find(params[:id])
-      # Process the payment here. For now, we assume it's successful.
       clear_cart  # Clear cart only after payment confirmation
       redirect_to order_confirmation_clients_order_path(@order), notice: 'Payment successful! Thank you for your order.'
     end
@@ -121,7 +122,6 @@ module Clients
 
     # Mock payment validation method (replace with real payment API call in production)
     def valid_payment?(card_number, expiry, cvv)
-      # Here, you might include basic checks or integrate with a payment API
       card_number.present? && expiry.present? && cvv.present?
     end
 
@@ -139,17 +139,17 @@ module Clients
 
         # Billing Details
         text "Billing Information:", size: 18, style: :bold
-        text "Name: #{order.billing_details[:first_name]} #{order.billing_details[:last_name]}"
-        text "Address: #{order.billing_details[:address]}, #{order.billing_details[:city]}, #{order.billing_details[:zip]}"
-        text "Phone: #{order.billing_details[:phone]}"
-        text "Email: #{order.billing_details[:email]}"
+        text "Name: #{order.billing_details['first_name']} #{order.billing_details['last_name']}"
+        text "Address: #{order.billing_details['address']}, #{order.billing_details['city']}, #{order.billing_details['zip']}"
+        text "Phone: #{order.billing_details['phone']}"
+        text "Email: #{order.billing_details['email']}"
         move_down 20
 
         # Shipping Details (if different from billing)
         if order.billing_details != order.shipping_details
           text "Shipping Information:", size: 18, style: :bold
-          text "Name: #{order.shipping_details[:first_name]} #{order.shipping_details[:last_name]}"
-          text "Address: #{order.shipping_details[:address]}, #{order.shipping_details[:city]}, #{order.shipping_details[:zip]}"
+          text "Name: #{order.shipping_details['first_name']} #{order.shipping_details['last_name']}"
+          text "Address: #{order.shipping_details['address']}, #{order.shipping_details['city']}, #{order.shipping_details['zip']}"
           move_down 20
         end
 
